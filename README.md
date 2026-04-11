@@ -43,7 +43,7 @@ mvdoc build
 Interactive setup wizard that configures:
 - Jira connection details (host, project key, API token)
 - GitHub connection (repository, access token)
-- AI Provider selection (Gemini or OpenAI/Groq/Custom)
+- AI Provider & Model Selection (`Gemini`, `xAI Grok 2`, `Groq LLaMA 3`, `OpenAI GPT-4o`)
 - Documentation output directory preferences
 
 This command creates `.mvdocrc.json` (configuration) and `.env` (secrets).
