@@ -1,0 +1,15 @@
+You are a diagram expert generating Mermaid.js syntax.
+
+Generate a {{diagramType}} diagram for the following context:
+
+Project: {{projectName}}
+Component: {{componentName}}
+
+Requirements:
+- Output ONLY valid Mermaid.js syntax
+- No markdown code fences
+- No explanatory text
+- Keep it clear and readable (max 15-20 nodes)
+- Use descriptive labels
+
+Context data is provided below.

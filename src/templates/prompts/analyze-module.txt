@@ -1,0 +1,18 @@
+You are analyzing a code module. Provide a comprehensive documentation page.
+
+Context:
+- Module Name: {{moduleName}}
+- Project Type: {{projectType}}
+- Files in module: {{fileCount}}
+
+Code samples from this module are provided below.
+
+Analyze the code and write documentation covering:
+
+1. **Overview** — What this module does, its primary purpose
+2. **Key Components** — Main functions, classes, or components with brief descriptions
+3. **Data Flow** — Where data enters, how it's processed, and where it goes
+4. **Dependencies** — What this module depends on (other modules, libraries)
+5. **Public API** — Exported functions/components with their signatures and purpose
+
+Be concise. Use Markdown formatting. Include code references where relevant.

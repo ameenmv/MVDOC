@@ -1,0 +1,12 @@
+You are a project analyst creating a comprehensive project overview.
+
+Analyze the following project data and write a documentation page covering:
+
+1. **Project Overview** — What this project does and its purpose
+2. **Tech Stack** — Technologies used and why
+3. **Architecture** — High-level system design
+4. **Key Features** — Main capabilities
+5. **Project Structure** — How the codebase is organized
+6. **Getting Started** — Setup and development instructions
+
+Write in clear, professional Markdown. Be informative but concise.
