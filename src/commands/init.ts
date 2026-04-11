@@ -292,29 +292,65 @@ async function interactiveSetup(cwd: string): Promise<{ config: MvdocConfig; sec
     config.ai.model = aiAnswers.model;
     secrets.geminiKey = aiAnswers.geminiKey;
   } else {
-    const aiAnswers = await prompts([
-      {
-        type: 'text',
-        name: 'baseUrl',
-        message: 'API Base URL (e.g. https://api.openai.com/v1 or https://api.groq.com/openai/v1):',
-        initial: 'https://api.openai.com/v1',
-      },
-      {
-        type: 'text',
-        name: 'model',
-        message: 'Model Name (e.g. gpt-4o, llama3-70b-8192):',
-        initial: 'gpt-4o',
-      },
-      {
-        type: 'password',
-        name: 'openaiKey',
-        message: 'API Key:',
-        validate: (v: string) => v.length > 0 || 'API key is required',
-      },
-    ]);
-    config.ai.baseUrl = aiAnswers.baseUrl;
-    config.ai.model = aiAnswers.model;
-    secrets.openaiKey = aiAnswers.openaiKey;
+    const presetAnswer = await prompts({
+      type: 'select',
+      name: 'preset',
+      message: 'Select AI Model & Provider:',
+      choices: [
+        { title: 'xAI - Grok 2 (Latest)', value: 'xai-grok-2' },
+        { title: 'Groq - LLaMA 3 70B (Fast, Free)', value: 'groq-llama3-70b' },
+        { title: 'Groq - LLaMA 3 8B (Fastest, Free)', value: 'groq-llama3-8b' },
+        { title: 'OpenAI - GPT-4o', value: 'openai-gpt-4o' },
+        { title: 'OpenAI - GPT-4o-mini', value: 'openai-gpt-4o-mini' },
+        { title: 'Custom Endpoint', value: 'custom' },
+      ],
+    });
+
+    let baseUrl = '';
+    let model = '';
+
+    if (presetAnswer.preset === 'custom') {
+      const customAnswers = await prompts([
+        {
+          type: 'text',
+          name: 'baseUrl',
+          message: 'API Base URL (e.g. https://api.openai.com/v1):',
+          initial: 'https://api.openai.com/v1',
+        },
+        {
+          type: 'text',
+          name: 'model',
+          message: 'Model Name (e.g. gpt-4o):',
+          initial: 'gpt-4o',
+        },
+      ]);
+      baseUrl = customAnswers.baseUrl;
+      model = customAnswers.model;
+    } else {
+      const presets: Record<string, { url: string; mod: string }> = {
+        'xai-grok-2': { url: 'https://api.x.ai/v1', mod: 'grok-2-latest' },
+        'groq-llama3-70b': { url: 'https://api.groq.com/openai/v1', mod: 'llama3-70b-8192' },
+        'groq-llama3-8b': { url: 'https://api.groq.com/openai/v1', mod: 'llama3-8b-8192' },
+        'openai-gpt-4o': { url: 'https://api.openai.com/v1', mod: 'gpt-4o' },
+        'openai-gpt-4o-mini': { url: 'https://api.openai.com/v1', mod: 'gpt-4o-mini' },
+      };
+      
+      baseUrl = presets[presetAnswer.preset].url;
+      model = presets[presetAnswer.preset].mod;
+      logger.info(`Using Base URL: ${baseUrl}`);
+      logger.info(`Using Model: ${model}`);
+    }
+
+    const keyAnswer = await prompts({
+      type: 'password',
+      name: 'openaiKey',
+      message: 'API Key:',
+      validate: (v: string) => v.length > 0 || 'API key is required',
+    });
+
+    config.ai.baseUrl = baseUrl;
+    config.ai.model = model;
+    secrets.openaiKey = keyAnswer.openaiKey;
   }
 
   // Wait, let's also fix the default local include pattern to not strictly be src/**/*
