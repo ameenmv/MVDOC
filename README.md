@@ -18,7 +18,7 @@
 
 ```bash
 # Install globally
-npm install -g mvdoc
+npm install -g mvdoc-cli
 
 # Navigate to your project directory
 cd my-project
