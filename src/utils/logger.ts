@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import chalk from 'chalk';
 import ora, { type Ora } from 'ora';
 
@@ -83,6 +84,11 @@ class Logger {
   // ─── Branding ───
 
   banner(): void {
+    const pkgPath = new URL('../../package.json', import.meta.url);
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+    const versionStr = `v${pkg.version}`;
+    const padding = ' '.repeat(Math.max(0, 20 - versionStr.length));
+
     console.log('');
     console.log(
       chalk.cyan.bold('  ╔══════════════════════════════════╗')
@@ -90,8 +96,8 @@ class Logger {
     console.log(
       chalk.cyan.bold('  ║') +
         chalk.white.bold('   📄 mvdoc ') +
-        chalk.dim('v0.1.0') +
-        chalk.cyan.bold('              ║')
+        chalk.dim(versionStr) +
+        chalk.cyan.bold(padding + '║')
     );
     console.log(
       chalk.cyan.bold('  ║') +
