@@ -271,7 +271,7 @@ async function interactiveSetup(cwd: string): Promise<{ config: MvdocConfig; sec
       choices: [
         { title: 'Gemini 2.0 Flash (Fast, recommended)', value: 'gemini-2.0-flash' },
         { title: 'Gemini 2.0 Flash Lite (Fastest)', value: 'gemini-2.0-flash-lite' },
-        { title: 'Gemini 2.5 Pro (Best quality)', value: 'gemini-2.5-pro-preview-05-06' },
+        { title: 'Gemini 1.5 Pro (Best quality)', value: 'gemini-1.5-pro' },
       ],
       initial: 0,
     },
@@ -279,6 +279,11 @@ async function interactiveSetup(cwd: string): Promise<{ config: MvdocConfig; sec
 
   config.ai.model = aiAnswers.model;
   secrets.geminiKey = aiAnswers.geminiKey;
+
+  // Wait, let's also fix the default local include pattern to not strictly be src/**/*
+  if (config.sources.local) {
+    config.sources.local.include = ['src/**/*', 'components/**/*', 'pages/**/*', 'app/**/*'];
+  }
 
   return { config, secrets };
 }
