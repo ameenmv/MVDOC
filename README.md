@@ -1,81 +1,81 @@
-# 📄 mvdoc — AI-Powered Documentation Generator
+# mvdoc — AI-Powered Documentation Generator
 
 > Generate smart, living documentation from your Jira stories, GitHub code, and codebase — powered by Gemini AI.
 
 [![npm version](https://img.shields.io/npm/v/mvdoc.svg)](https://www.npmjs.com/package/mvdoc)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## ✨ Features
+## Features
 
-- 📋 **Jira Integration** — Pulls user stories, epics, and sprints from Jira Cloud
-- 🐙 **GitHub Integration** — Analyzes repository structure, code, and commits
-- 🧠 **AI-Powered Analysis** — Uses Gemini to generate technical specs and documentation
-- 📊 **Auto Diagrams** — Generates Mermaid.js flowcharts, sequence diagrams, ER diagrams
-- 💬 **Ask Your Docs (RAG)** — Chat with your documentation using AI
-- 🌐 **VitePress Site** — Beautiful, searchable documentation website out of the box
+- **Jira Integration** — Pulls user stories, epics, and sprints from Jira Cloud.
+- **GitHub Integration** — Analyzes repository structure, code, and commits.
+- **AI-Powered Analysis** — Uses Gemini to generate technical specs and documentation from raw data.
+- **Auto Diagrams** — Generates Mermaid.js flowcharts, sequence diagrams, and ER diagrams autonomously.
+- **Ask Your Docs (RAG)** — Interact with your documentation using an AI-powered chat interface.
+- **VitePress Site** — Produces a beautiful, searchable documentation website out of the box.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # Install globally
 npm install -g mvdoc
 
-# Navigate to your project
+# Navigate to your project directory
 cd my-project
 
 # Initialize (interactive setup)
 mvdoc init
 
-# Generate documentation
+# Generate documentation files
 mvdoc generate
 
 # Preview locally
 mvdoc serve
 
-# Build for deployment
+# Build for production deployment
 mvdoc build
 ```
 
-## 📖 Commands
+## Commands
 
 ### `mvdoc init`
 
 Interactive setup wizard that configures:
-- Jira connection (host, project key, API token)
+- Jira connection details (host, project key, API token)
 - GitHub connection (repository, access token)
 - Gemini AI API key
-- Documentation output directory
+- Documentation output directory preferences
 
-Creates `.mvdocrc.json` (config) and `.env` (secrets).
+This command creates `.mvdocrc.json` (configuration) and `.env` (secrets).
 
 ### `mvdoc generate`
 
-Runs the full documentation pipeline:
-1. **Aggregates** data from Jira, GitHub, and local codebase
-2. **Processes** stories into technical specifications using AI
-3. **Generates** Mermaid diagrams (architecture, data flow, sequence, ER)
-4. **Creates** Markdown pages for VitePress
+Runs the full documentation generation pipeline:
+1. **Aggregates** data from Jira, GitHub, and the local codebase.
+2. **Processes** user stories into technical specifications via AI.
+3. **Generates** Mermaid diagrams (architecture, data flow, sequence, ER).
+4. **Creates** Markdown pages formatted for VitePress.
 
 ```bash
-# Full generation
+# Full generation pipeline
 mvdoc generate
 
-# Skip AI processing
+# Skip AI processing (use raw data only)
 mvdoc generate --skip-ai
 
-# Skip diagram generation
+# Skip diagram generation to speed up the process
 mvdoc generate --skip-diagrams
 
-# Preview without writing files
+# Preview what would be generated without writing to disk
 mvdoc generate --dry-run
 
-# Only use specific sources
+# Limit data aggregation to specific sources
 mvdoc generate --source local,github
 ```
 
 ### `mvdoc serve`
 
-Starts a VitePress dev server to preview your documentation.
+Starts a local VitePress development server to preview your generated documentation.
 
 ```bash
 mvdoc serve
@@ -85,7 +85,7 @@ mvdoc serve --no-open
 
 ### `mvdoc build`
 
-Builds the VitePress site for production deployment.
+Compiles the VitePress site into static HTML/CSS/JS for production deployment.
 
 ```bash
 mvdoc build
@@ -94,7 +94,7 @@ mvdoc build --out-dir ./public
 
 ### `mvdoc index`
 
-Indexes documentation for the RAG chatbot (creates vector embeddings).
+Indexes the generated documentation to enable the RAG (Retrieval-Augmented Generation) chatbot. Creates vector embeddings locally.
 
 ```bash
 mvdoc index
@@ -103,18 +103,18 @@ mvdoc index --force  # Re-index all documents
 
 ### `mvdoc chat`
 
-Chat with your documentation using AI.
+Interact with your indexed documentation using AI.
 
 ```bash
-# Interactive CLI chat
+# Start an interactive CLI chat session
 mvdoc chat
 
-# Start API server for the web widget
+# Start a background API server for the VitePress web widget
 mvdoc chat --serve
 mvdoc chat --serve --port 3456
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 ### `.mvdocrc.json`
 
@@ -153,7 +153,7 @@ mvdoc chat --serve --port 3456
 }
 ```
 
-### `.env` (Do NOT commit!)
+### `.env` (Do NOT commit)
 
 ```env
 MVDOC_JIRA_EMAIL=your-email@company.com
@@ -162,41 +162,41 @@ MVDOC_GITHUB_TOKEN=ghp_your-github-token
 MVDOC_GEMINI_KEY=AIza-your-gemini-key
 ```
 
-## 🏗️ Generated Documentation Structure
+## Generated Documentation Structure
 
-```
+```text
 docs/
-├── index.md              # Homepage with project stats
+├── index.md              # Homepage with project metrics
 ├── overview.md           # AI-generated project overview
 ├── architecture/
 │   └── index.md          # Diagrams (architecture, data flow, ER)
 ├── stories/
-│   ├── index.md          # Story index with status table
-│   ├── proj-1.md         # Individual story with tech spec
-│   └── epic-proj-10.md   # Epic grouping page
+│   ├── index.md          # Story index with status tracking
+│   ├── proj-1.md         # Individual story with technical specifications
+│   └── epic-proj-10.md   # Epic grouping view
 ├── modules/
 │   ├── index.md          # Module index
 │   └── auth.md           # AI-analyzed module documentation
 └── .vitepress/
-    ├── config.mts         # Auto-generated VitePress config
+    ├── config.mts         # Auto-generated VitePress configuration
     └── theme/
-        ├── index.ts       # Custom theme with ChatWidget
-        ├── style.css      # Custom styles
+        ├── index.ts       # Custom theme configuration
+        ├── style.css      # Brand styling
         └── components/
-            └── ChatWidget.vue  # RAG chat component
+            └── ChatWidget.vue  # Interactive RAG chat component
 ```
 
-## 🤖 How AI is Used
+## AI Model Usage
 
-| Feature | AI Model | Purpose |
-|---------|----------|---------|
-| Story → Spec | Gemini 2.0 Flash | Convert user stories to technical specs |
-| Diagram Generation | Gemini 2.0 Flash | Generate Mermaid.js syntax |
-| Module Analysis | Gemini 2.0 Flash | Analyze and document code modules |
-| Project Overview | Gemini 2.0 Flash | Summarize the entire project |
-| RAG Embeddings | text-embedding-004 | Create vector embeddings for search |
-| Ask Your Docs | Gemini 2.0 Flash | Answer questions from doc context |
+| Feature | Primary Model | Purpose |
+|---------|---------------|---------|
+| Story to Spec | Gemini 2.0 Flash | Translates user stories into technical specifications |
+| Diagram Generation | Gemini 2.0 Flash | Generates structural Mermaid.js syntax |
+| Module Analysis | Gemini 2.0 Flash | Reads source code and documents modules |
+| Project Overview | Gemini 2.0 Flash | Summarizes the holistic project state |
+| RAG Embeddings | text-embedding-004 | Creates vector embeddings for document search |
+| Ask Your Docs | Gemini 2.0 Flash | Processes context to answer user queries |
 
-## 📝 License
+## License
 
 MIT © Ameen
