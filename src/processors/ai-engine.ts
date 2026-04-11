@@ -68,18 +68,21 @@ export async function generateContent(
       const isRateLimit = err?.status === 429 || err?.message?.includes('429');
       const isRetryable = isRateLimit || err?.status === 503;
 
-      if (isRetryable && attempt < retries) {
-        // Exponential backoff: 2s, 4s, 8s
-        const delay = Math.pow(2, attempt) * 1000;
+      if (!isRetryable) {
+        throw err;
+      }
+
+      if (attempt < retries) {
+        // Exponential backoff for rate limits (free tier is strict, so we wait longer)
+        // 10s, 20s, 40s
+        const delay = Math.pow(2, attempt) * 5000;
         logger.debug(`Rate limited. Retrying in ${delay / 1000}s (attempt ${attempt}/${retries})...`);
         await sleep(delay);
         continue;
       }
 
-      if (attempt === retries) {
-        logger.error(`AI generation failed after ${retries} attempts`, err);
-        throw err;
-      }
+      logger.error(`AI generation failed after ${retries} attempts`);
+      throw err;
     }
   }
 

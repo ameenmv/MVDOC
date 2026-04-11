@@ -8,12 +8,17 @@ import { registerServeCommand } from '../commands/serve.js';
 import { registerBuildCommand } from '../commands/build.js';
 import { registerIndexCommand } from '../commands/index-docs.js';
 
+import fs from 'node:fs';
+
+const pkgJsonPath = new URL('../../package.json', import.meta.url);
+const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8'));
+
 const program = new Command();
 
 program
   .name('mvdoc')
   .description('AI-Powered Documentation Generator — Generate smart docs from Jira, GitHub, and your codebase')
-  .version('0.1.0', '-v, --version')
+  .version(pkg.version, '-v, --version')
   .option('--verbose', 'Enable verbose output', false)
   .hook('preAction', (thisCommand) => {
     const opts = thisCommand.opts();
