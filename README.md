@@ -9,7 +9,7 @@
 
 - **Jira Integration** — Pulls user stories, epics, and sprints from Jira Cloud.
 - **GitHub Integration** — Analyzes repository structure, code, and commits.
-- **AI-Powered Analysis** — Uses Gemini to generate technical specs and documentation from raw data.
+- **AI-Powered Analysis** — Uses Gemini, OpenAI, Groq, or Local LLMs to generate technical specs.
 - **Auto Diagrams** — Generates Mermaid.js flowcharts, sequence diagrams, and ER diagrams autonomously.
 - **Ask Your Docs (RAG)** — Interact with your documentation using an AI-powered chat interface.
 - **VitePress Site** — Produces a beautiful, searchable documentation website out of the box.
@@ -43,7 +43,7 @@ mvdoc build
 Interactive setup wizard that configures:
 - Jira connection details (host, project key, API token)
 - GitHub connection (repository, access token)
-- Gemini AI API key
+- AI Provider selection (Gemini or OpenAI/Groq/Custom)
 - Documentation output directory preferences
 
 This command creates `.mvdocrc.json` (configuration) and `.env` (secrets).
@@ -147,8 +147,9 @@ mvdoc chat --serve --port 3456
     "modules": ["src/**/*"]
   },
   "ai": {
-    "provider": "gemini",
-    "model": "gemini-2.0-flash"
+    "provider": "openai",
+    "model": "llama3-70b-8192",
+    "baseUrl": "https://api.groq.com/openai/v1"
   }
 }
 ```
@@ -160,6 +161,7 @@ MVDOC_JIRA_EMAIL=your-email@company.com
 MVDOC_JIRA_TOKEN=your-jira-api-token
 MVDOC_GITHUB_TOKEN=ghp_your-github-token
 MVDOC_GEMINI_KEY=AIza-your-gemini-key
+MVDOC_OPENAI_KEY=your-openai-or-groq-key
 ```
 
 ## Generated Documentation Structure
@@ -190,12 +192,12 @@ docs/
 
 | Feature | Primary Model | Purpose |
 |---------|---------------|---------|
-| Story to Spec | Gemini 2.0 Flash | Translates user stories into technical specifications |
-| Diagram Generation | Gemini 2.0 Flash | Generates structural Mermaid.js syntax |
-| Module Analysis | Gemini 2.0 Flash | Reads source code and documents modules |
-| Project Overview | Gemini 2.0 Flash | Summarizes the holistic project state |
-| RAG Embeddings | text-embedding-004 | Creates vector embeddings for document search |
-| Ask Your Docs | Gemini 2.0 Flash | Processes context to answer user queries |
+| Story to Spec | Gemini/OpenAI/Groq | Translates user stories into technical specifications |
+| Diagram Generation | Gemini/OpenAI/Groq | Generates structural Mermaid.js syntax |
+| Module Analysis | Gemini/OpenAI/Groq | Reads source code and documents modules |
+| Project Overview | Gemini/OpenAI/Groq | Summarizes the holistic project state |
+| RAG Embeddings | text-embedding-004 / text-embedding-3-small | Creates vector embeddings for document search |
+| Ask Your Docs | Gemini/OpenAI/Groq | Processes context to answer user queries |
 
 ## License
 
