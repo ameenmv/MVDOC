@@ -257,28 +257,65 @@ async function interactiveSetup(cwd: string): Promise<{ config: MvdocConfig; sec
   // ─── AI Config ───
   logger.subheader('AI Configuration');
 
-  const aiAnswers = await prompts([
-    {
-      type: 'password',
-      name: 'geminiKey',
-      message: 'Gemini API Key:',
-      validate: (v: string) => v.length > 0 || 'API key is required',
-    },
-    {
-      type: 'select',
-      name: 'model',
-      message: 'AI Model:',
-      choices: [
-        { title: 'Gemini 2.0 Flash (Fast, recommended)', value: 'gemini-2.0-flash' },
-        { title: 'Gemini 2.0 Flash Lite (Fastest)', value: 'gemini-2.0-flash-lite' },
-        { title: 'Gemini 1.5 Pro (Best quality)', value: 'gemini-1.5-pro' },
-      ],
-      initial: 0,
-    },
-  ]);
+  const providerAnswer = await prompts({
+    type: 'select',
+    name: 'provider',
+    message: 'Select AI Provider:',
+    choices: [
+      { title: 'Google Gemini (Native)', value: 'gemini' },
+      { title: 'OpenAI / Custom Endpoint / Groq', value: 'openai' },
+    ],
+  });
 
-  config.ai.model = aiAnswers.model;
-  secrets.geminiKey = aiAnswers.geminiKey;
+  config.ai.provider = providerAnswer.provider;
+
+  if (config.ai.provider === 'gemini') {
+    const aiAnswers = await prompts([
+      {
+        type: 'password',
+        name: 'geminiKey',
+        message: 'Gemini API Key:',
+        validate: (v: string) => v.length > 0 || 'API key is required',
+      },
+      {
+        type: 'select',
+        name: 'model',
+        message: 'AI Model:',
+        choices: [
+          { title: 'Gemini 2.0 Flash (Fast, recommended)', value: 'gemini-2.0-flash' },
+          { title: 'Gemini 2.0 Flash Lite (Fastest)', value: 'gemini-2.0-flash-lite' },
+          { title: 'Gemini 1.5 Pro (Best quality)', value: 'gemini-1.5-pro' },
+        ],
+        initial: 0,
+      },
+    ]);
+    config.ai.model = aiAnswers.model;
+    secrets.geminiKey = aiAnswers.geminiKey;
+  } else {
+    const aiAnswers = await prompts([
+      {
+        type: 'text',
+        name: 'baseUrl',
+        message: 'API Base URL (e.g. https://api.openai.com/v1 or https://api.groq.com/openai/v1):',
+        initial: 'https://api.openai.com/v1',
+      },
+      {
+        type: 'text',
+        name: 'model',
+        message: 'Model Name (e.g. gpt-4o, llama3-70b-8192):',
+        initial: 'gpt-4o',
+      },
+      {
+        type: 'password',
+        name: 'openaiKey',
+        message: 'API Key:',
+        validate: (v: string) => v.length > 0 || 'API key is required',
+      },
+    ]);
+    config.ai.baseUrl = aiAnswers.baseUrl;
+    config.ai.model = aiAnswers.model;
+    secrets.openaiKey = aiAnswers.openaiKey;
+  }
 
   // Wait, let's also fix the default local include pattern to not strictly be src/**/*
   if (config.sources.local) {

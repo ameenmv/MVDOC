@@ -33,8 +33,9 @@ export interface MvdocConfig {
     modules: string[];
   };
   ai: {
-    provider: 'gemini';
+    provider: 'gemini' | 'openai';
     model: string;
+    baseUrl?: string;
   };
 }
 
@@ -46,6 +47,7 @@ export interface MvdocSecrets {
   jiraToken?: string;
   githubToken?: string;
   geminiKey?: string;
+  openaiKey?: string;
 }
 
 const CONFIG_FILENAME = '.mvdocrc.json';
@@ -137,6 +139,7 @@ export function loadSecrets(cwd: string = process.cwd()): MvdocSecrets {
     jiraToken: process.env.MVDOC_JIRA_TOKEN,
     githubToken: process.env.MVDOC_GITHUB_TOKEN,
     geminiKey: process.env.MVDOC_GEMINI_KEY,
+    openaiKey: process.env.MVDOC_OPENAI_KEY,
   };
 }
 
@@ -170,6 +173,9 @@ export function saveSecrets(secrets: MvdocSecrets, cwd: string = process.cwd()):
   }
   if (secrets.geminiKey) {
     lines.push(`MVDOC_GEMINI_KEY=${secrets.geminiKey}`);
+  }
+  if (secrets.openaiKey) {
+    lines.push(`MVDOC_OPENAI_KEY=${secrets.openaiKey}`);
   }
 
   lines.push('');

@@ -32,63 +32,85 @@ const STORE_FILENAME = '.mvdoc-vectors.json';
 /**
  * Index all markdown files in the docs directory
  */
+import type { MvdocConfig, MvdocSecrets } from '../utils/config.js';
+
 export async function indexDocuments(
   docsDir: string,
-  apiKey: string
+  config: MvdocConfig,
+  secrets: MvdocSecrets
 ): Promise<VectorStore> {
   const spinner = logger.spinner('Indexing documents for RAG...');
 
   try {
-    // 1. Find all markdown files
     const mdFiles = findMarkdownFiles(docsDir);
     spinner.text = `Found ${mdFiles.length} markdown files...`;
 
-    // 2. Chunk the documents
     const rawChunks = chunkDocuments(mdFiles, docsDir);
     spinner.text = `Created ${rawChunks.length} chunks...`;
 
-    // 3. Generate embeddings
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+    const provider = config.ai.provider;
+    let geminiEmbeddingModel: any = null;
+    let openaiKey = '';
+    let openaiBaseUrl = '';
+
+    if (provider === 'gemini') {
+      if (!secrets.geminiKey) throw new Error('Gemini API key is required');
+      const genAI = new GoogleGenerativeAI(secrets.geminiKey);
+      geminiEmbeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+    } else {
+      if (!secrets.openaiKey) throw new Error('OpenAI API key is required');
+      openaiKey = secrets.openaiKey;
+      openaiBaseUrl = config.ai.baseUrl || 'https://api.openai.com/v1';
+    }
 
     const chunks: DocumentChunk[] = [];
+    const batchSize = provider === 'gemini' ? 5 : 20;
 
-    // Process in batches of 10
-    const batchSize = 10;
     for (let i = 0; i < rawChunks.length; i += batchSize) {
       const batch = rawChunks.slice(i, i + batchSize);
       spinner.text = `Generating embeddings ${i + 1}–${Math.min(i + batchSize, rawChunks.length)} of ${rawChunks.length}...`;
 
-      const embeddings = await Promise.all(
-        batch.map(async (chunk) => {
-          try {
-            const result = await embeddingModel.embedContent(chunk.content);
-            return result.embedding.values;
-          } catch {
-            return [] as number[];
-          }
-        })
-      );
-
-      for (let j = 0; j < batch.length; j++) {
-        if (embeddings[j].length > 0) {
-          chunks.push({
-            ...batch[j],
-            embedding: embeddings[j],
+      if (provider === 'openai') {
+        const inputs = batch.map(c => c.content);
+        const url = `${openaiBaseUrl.replace(/\/$/, '')}/embeddings`;
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+          body: JSON.stringify({
+            model: 'text-embedding-3-small',
+            input: inputs
+          })
+        });
+        if (resp.ok) {
+          const json = await resp.json() as any;
+          batch.forEach((chunk, j) => {
+            if (json.data[j]?.embedding) {
+              chunks.push({ ...chunk, embedding: json.data[j].embedding });
+            }
           });
+        }
+      } else {
+        const embeddings = await Promise.all(
+          batch.map(async (chunk) => {
+            try {
+              const result = await geminiEmbeddingModel.embedContent(chunk.content);
+              return result.embedding.values;
+            } catch {
+              return [] as number[];
+            }
+          })
+        );
+        for (let j = 0; j < batch.length; j++) {
+          if (embeddings[j].length > 0) chunks.push({ ...batch[j], embedding: embeddings[j] });
         }
       }
 
-      // Small delay between batches
-      if (i + batchSize < rawChunks.length) {
-        await new Promise((r) => setTimeout(r, 200));
-      }
+      if (i + batchSize < rawChunks.length) await new Promise((r) => setTimeout(r, 200));
     }
 
-    // 4. Save vector store
     const store: VectorStore = {
       chunks,
-      model: 'text-embedding-004',
+      model: provider === 'gemini' ? 'text-embedding-004' : 'text-embedding-3-small',
       createdAt: new Date().toISOString(),
     };
 

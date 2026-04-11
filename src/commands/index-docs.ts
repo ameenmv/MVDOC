@@ -51,12 +51,16 @@ async function runIndex(options: { force: boolean }): Promise<void> {
     process.exit(1);
   }
 
-  if (!secrets.geminiKey) {
+  if (config.ai.provider === 'gemini' && !secrets.geminiKey) {
     logger.error('Gemini API key not found. Set MVDOC_GEMINI_KEY in .env');
     process.exit(1);
   }
+  if (config.ai.provider === 'openai' && !secrets.openaiKey) {
+    logger.error('OpenAI API key not found. Set MVDOC_OPENAI_KEY in .env');
+    process.exit(1);
+  }
 
-  const store = await indexDocuments(docsDir, secrets.geminiKey);
+  const store = await indexDocuments(docsDir, config, secrets);
 
   logger.blank();
   logger.table({
@@ -75,17 +79,21 @@ async function runChat(options: { serve: boolean; port: string }): Promise<void>
   const secrets = loadSecrets();
   const docsDir = path.resolve(config.output.dir);
 
-  if (!secrets.geminiKey) {
+  if (config.ai.provider === 'gemini' && !secrets.geminiKey) {
     logger.error('Gemini API key not found. Set MVDOC_GEMINI_KEY in .env');
+    process.exit(1);
+  }
+  if (config.ai.provider === 'openai' && !secrets.openaiKey) {
+    logger.error('OpenAI API key not found. Set MVDOC_OPENAI_KEY in .env');
     process.exit(1);
   }
 
   if (options.serve) {
     // Start API server mode
     logger.header('🌐 Starting RAG Chat Server');
-    startRAGServer(docsDir, secrets.geminiKey, config.ai.model, parseInt(options.port));
+    startRAGServer(docsDir, config, secrets, parseInt(options.port));
   } else {
     // Interactive CLI chat
-    await startCLIChat(docsDir, secrets.geminiKey, config.ai.model);
+    await startCLIChat(docsDir, config, secrets);
   }
 }

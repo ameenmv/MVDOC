@@ -1,20 +1,16 @@
 import http from 'node:http';
 import { askQuestion, type ChatMessage } from './chat.js';
 import { logger } from '../utils/logger.js';
-
-/**
- * RAG API Server
- * Local HTTP server providing the chat API for the VitePress ChatWidget
- */
+import type { MvdocConfig, MvdocSecrets } from '../utils/config.js';
 
 export function startRAGServer(
   docsDir: string,
-  apiKey: string,
-  model: string = 'gemini-2.0-flash',
+  config: MvdocConfig,
+  secrets: MvdocSecrets,
   port: number = 3456
 ): http.Server {
+  const model = config.ai.model;
   const server = http.createServer(async (req, res) => {
-    // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -39,7 +35,7 @@ export function startRAGServer(
           return;
         }
 
-        const response = await askQuestion(question, docsDir, apiKey, {
+        const response = await askQuestion(question, docsDir, config, secrets, {
           model,
           history,
           topK: 5,

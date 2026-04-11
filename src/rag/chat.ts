@@ -2,11 +2,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { loadVectorStore } from './indexer.js';
 import { retrieve, rerank, buildContext } from './retriever.js';
 import { logger } from '../utils/logger.js';
-
-/**
- * RAG Chat
- * Handles the query → retrieve → generate pipeline for the chatbot
- */
+import type { MvdocConfig, MvdocSecrets } from '../utils/config.js';
+import { generateContent, initAI } from '../processors/ai-engine.js';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -22,22 +19,19 @@ export interface ChatResponse {
   }>;
 }
 
-/**
- * Answer a question using RAG
- */
 export async function askQuestion(
   question: string,
   docsDir: string,
-  apiKey: string,
+  config: MvdocConfig,
+  secrets: MvdocSecrets,
   options: {
     model?: string;
     history?: ChatMessage[];
     topK?: number;
   } = {}
 ): Promise<ChatResponse> {
-  const { model = 'gemini-2.0-flash', history = [], topK = 5 } = options;
+  const { model = config.ai.model, history = [], topK = 5 } = options;
 
-  // 1. Load vector store
   const store = loadVectorStore(docsDir);
   if (!store || store.chunks.length === 0) {
     return {
@@ -46,59 +40,48 @@ export async function askQuestion(
     };
   }
 
-  // 2. Generate query embedding
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+  const provider = config.ai.provider;
+  let queryVector: number[] = [];
 
-  const queryEmbedding = await embeddingModel.embedContent(question);
-  const queryVector = queryEmbedding.embedding.values;
+  if (provider === 'gemini') {
+    const genAI = new GoogleGenerativeAI(secrets.geminiKey!);
+    const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+    const queryEmbedding = await embeddingModel.embedContent(question);
+    queryVector = queryEmbedding.embedding.values;
+  } else {
+    const url = `${(config.ai.baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '')}/embeddings`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${secrets.openaiKey}` },
+      body: JSON.stringify({ model: 'text-embedding-3-small', input: question })
+    });
+    if (!resp.ok) throw new Error('Failed to generate embedding with OpenAI');
+    const json = await resp.json() as any;
+    queryVector = json.data[0].embedding;
+  }
 
-  // 3. Retrieve relevant chunks
   let results = retrieve(queryVector, store, { topK });
   results = rerank(results, question);
 
-  // 4. Build context
   const context = buildContext(results);
+  
+  // Make sure AI engine is initialized for generateContent
+  initAI(config, secrets);
 
-  // 5. Generate answer
-  const chatModel = genAI.getGenerativeModel({
-    model,
-    systemInstruction: CHAT_SYSTEM_PROMPT,
-    generationConfig: {
-      temperature: 0.3,
-      maxOutputTokens: 2048,
-    },
-  });
-
-  // Build conversation with history
-  const messages: Array<{ role: string; parts: Array<{ text: string }> }> = [];
-
-  // Add history
-  for (const msg of history.slice(-6)) {  // Keep last 6 messages for context
-    messages.push({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }],
-    });
+  let conversation = `Context from documentation:\n---\n${context}\n---\n\n`;
+  if (history.length > 0) {
+    conversation += "Previous conversation:\n";
+    for (const msg of history.slice(-6)) {
+      conversation += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n\n`;
+    }
   }
+  conversation += `User question: ${question}\n\nAnswer based ONLY on the context above. If the answer is not in the context, say so clearly.`;
 
-  // Add current question with context
-  const augmentedQuestion = `Context from documentation:
----
-${context}
----
-
-User question: ${question}
-
-Answer based ONLY on the documentation context above. If the answer is not in the context, say so clearly.`;
-
-  const chat = chatModel.startChat({
-    history: messages,
+  const answer = await generateContent(conversation, {
+    systemInstruction: CHAT_SYSTEM_PROMPT,
+    temperature: 0.3,
   });
 
-  const result = await chat.sendMessage(augmentedQuestion);
-  const answer = result.response.text();
-
-  // 6. Build sources
   const sources = results.map((r) => ({
     file: r.chunk.metadata.source,
     section: r.chunk.metadata.section,
@@ -108,13 +91,10 @@ Answer based ONLY on the documentation context above. If the answer is not in th
   return { answer, sources };
 }
 
-/**
- * Interactive CLI chat (for terminal usage)
- */
 export async function startCLIChat(
   docsDir: string,
-  apiKey: string,
-  model: string = 'gemini-2.0-flash'
+  config: MvdocConfig,
+  secrets: MvdocSecrets
 ): Promise<void> {
   const readline = await import('node:readline');
 
@@ -138,8 +118,8 @@ export async function startCLIChat(
 
       try {
         const spinner = logger.spinner('Thinking...');
-        const response = await askQuestion(question, docsDir, apiKey, {
-          model,
+        const response = await askQuestion(question, docsDir, config, secrets, {
+          model: config.ai.model,
           history,
           topK: 5,
         });

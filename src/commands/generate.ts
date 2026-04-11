@@ -55,11 +55,15 @@ async function runGenerate(options: {
 
   // 2. Initialize AI engine
   if (!options.skipAi) {
-    if (!secrets.geminiKey) {
+    if (config.ai.provider === 'gemini' && !secrets.geminiKey) {
       logger.error('Gemini API key not found. Set MVDOC_GEMINI_KEY in .env');
       process.exit(1);
     }
-    initAI(secrets.geminiKey, config.ai.model);
+    if (config.ai.provider === 'openai' && !secrets.openaiKey) {
+      logger.error('OpenAI API key not found. Set MVDOC_OPENAI_KEY in .env');
+      process.exit(1);
+    }
+    initAI(config, secrets);
     logger.success('AI engine initialized');
   }
 
