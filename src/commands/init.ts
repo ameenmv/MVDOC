@@ -318,7 +318,7 @@ function detectProviderFromKey(key: string): DetectedProvider {
   if (k.startsWith('xai-')) {
     return {
       provider: 'openai',
-      model: 'grok-2-latest',
+      model: 'grok-2',
       baseUrl: 'https://api.x.ai/v1',
       label: 'xAI Grok 2',
     };

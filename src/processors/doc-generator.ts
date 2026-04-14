@@ -70,7 +70,8 @@ export async function generateAllDocs(
     spinner.succeed(`Generated ${pages.length} documentation pages`);
     return pages;
   } catch (err) {
-    spinner.fail('Documentation generation failed');
+    const msg = err instanceof Error ? err.message : String(err);
+    spinner.fail(`Documentation generation failed: ${msg}`);
     throw err;
   }
 }
@@ -97,8 +98,10 @@ Source Files: ${data.local?.sourceFiles.length || 'N/A'}
 Directories: ${data.local?.directories.slice(0, 15).join(', ') || 'N/A'}
 `;
 
-  const overview = await generateContent(
-    `Write a comprehensive project overview documentation page based on this information:
+  let overview: string;
+  try {
+    overview = await generateContent(
+      `Write a comprehensive project overview documentation page based on this information:
 
 ${context}
 
@@ -110,12 +113,33 @@ Include these sections:
 3. **Project Structure** — Key directories and their purpose
 4. **Getting Started** — How to set up the project (based on scripts)
 5. **Key Statistics** — Stories, modules, etc.`,
-    {
-      systemInstruction: DOC_SYSTEM_PROMPT,
-      temperature: 0.4,
-      maxTokens: 4096,
-    }
-  );
+      {
+        systemInstruction: DOC_SYSTEM_PROMPT,
+        temperature: 0.4,
+        maxTokens: 4096,
+      }
+    );
+  } catch {
+    overview = `## Overview
+
+${data.project.description || 'No description provided.'}
+
+## Tech Stack
+
+${data.local ? Object.keys(data.local.dependencies).map(d => `- ${d}`).join('\n') : '_Not available_'}
+
+## Project Structure
+
+${data.local?.directories.slice(0, 15).map(d => `- \`${d}\``).join('\n') || '_Not available_'}
+
+## Statistics
+
+| Metric | Value |
+|--------|-------|
+| Source Files | ${data.local?.sourceFiles.length || 'N/A'} |
+| User Stories | ${storyCount} |
+| Epics | ${epicCount} |`;
+  }
 
   const content = `---
 title: Project Overview
