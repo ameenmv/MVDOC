@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "dev": "tsx src/bin/cli.ts",
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/bin/cli.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
