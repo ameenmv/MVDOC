@@ -111,8 +111,11 @@ async function runGenerate(options: {
           }
         }
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        logger.warn(`Diagram generation failed: ${msg}`);
+        if (err instanceof Error && err.message.includes('AI is disabled')) {
+          logger.warn('Diagram generation skipped (AI disabled due to auth error)');
+        } else {
+          logger.warn('Diagram generation failed');
+        }
         logger.info('Continuing to documentation generation without diagrams...');
       }
     }
