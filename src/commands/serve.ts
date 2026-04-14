@@ -1,9 +1,9 @@
 import { Command } from 'commander';
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 import path from 'node:path';
 import { logger } from '../utils/logger.js';
 import { loadConfig } from '../utils/config.js';
-import { exists } from '../utils/file-utils.js';
+import { exists, writeFile } from '../utils/file-utils.js';
 
 export function registerServeCommand(program: Command): void {
   program
@@ -39,16 +39,48 @@ async function runServe(options: { port: string; open: boolean }): Promise<void>
   const vitepressConfig = path.join(docsDir, '.vitepress', 'config.mts');
   if (!exists(vitepressConfig)) {
     logger.warn('VitePress config not found. Run `mvdoc generate` to create it.');
-    logger.info('Starting with default VitePress settings...');
   }
 
-  // Ensure vitepress is available
+  // Ensure docs dir has a package.json so vitepress can be installed locally
+  const pkgJson = path.join(docsDir, 'package.json');
+  if (!exists(pkgJson)) {
+    writeFile(
+      pkgJson,
+      JSON.stringify(
+        {
+          name: config.project.name.toLowerCase().replace(/\s+/g, '-') + '-docs',
+          version: '1.0.0',
+          private: true,
+        },
+        null,
+        2
+      )
+    );
+  }
+
+  // Install vitepress locally in the docs dir if not already installed
+  const vitepressInstalled = exists(path.join(docsDir, 'node_modules', 'vitepress'));
+  if (!vitepressInstalled) {
+    const installSpinner = logger.spinner('Installing VitePress in docs directory...');
+    try {
+      execSync('npm install vitepress --save-dev --prefer-offline', {
+        cwd: docsDir,
+        stdio: 'pipe',
+      });
+      installSpinner.succeed('VitePress installed');
+    } catch {
+      installSpinner.fail('Failed to install VitePress automatically');
+      logger.info(`Run manually: cd ${docsDir} && npm install vitepress`);
+      process.exit(1);
+    }
+  }
+
   logger.info(`Starting VitePress dev server on port ${options.port}...`);
   logger.info(`Docs directory: ${docsDir}`);
   logger.blank();
 
-  // Spawn VitePress dev server
-  const args = ['vitepress', 'dev', docsDir, '--port', options.port];
+  // Run vitepress FROM the docs directory so it resolves its own node_modules
+  const args = ['vitepress', 'dev', '.', '--port', options.port];
   if (options.open) {
     args.push('--open');
   }
@@ -56,12 +88,11 @@ async function runServe(options: { port: string; open: boolean }): Promise<void>
   const child = spawn('npx', args, {
     stdio: 'inherit',
     shell: true,
-    cwd: process.cwd(),
+    cwd: docsDir, // ← key fix: run from docs dir, not project root
   });
 
   child.on('error', (err) => {
     logger.error('Failed to start VitePress server', err);
-    logger.info('Make sure VitePress is installed: npm install -D vitepress');
     process.exit(1);
   });
 

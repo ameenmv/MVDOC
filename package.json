@@ -1,6 +1,6 @@
 {
   "name": "mvdoc-cli",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "AI-powered documentation generator — pulls Jira stories & GitHub code, generates VitePress docs with diagrams and RAG chatbot",
   "type": "module",
   "bin": {
