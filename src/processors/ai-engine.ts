@@ -9,6 +9,7 @@ let aiProvider: 'gemini' | 'openai' = 'gemini';
 let aiModelName: string = 'gemini-2.0-flash';
 let openaiKey: string = '';
 let openaiBaseUrl: string = 'https://api.openai.com/v1';
+let aiDisabled: boolean = false; // set to true on auth/credits failure to skip all future calls
 
 export function initAI(config: MvdocConfig, secrets: MvdocSecrets): void {
   aiProvider = config.ai.provider;
@@ -37,6 +38,11 @@ export async function generateContent(
     retries?: number;
   } = {}
 ): Promise<string> {
+  // If auth/credits failed previously, skip immediately
+  if (aiDisabled) {
+    throw new Error('AI is disabled due to auth/credits failure. Skipping.');
+  }
+
   const retries = options.retries || 3;
 
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -47,6 +53,18 @@ export async function generateContent(
         return await generateWithOpenAI(prompt, options);
       }
     } catch (err: any) {
+      // Auth/credits errors — disable AI for all future calls
+      const isAuthError = err?.status === 401 || err?.status === 403 ||
+        err?.message?.includes('401') || err?.message?.includes('403') ||
+        err?.message?.includes('credits') || err?.message?.includes('permission');
+
+      if (isAuthError) {
+        aiDisabled = true;
+        logger.warn('⚠ AI key is invalid or has no credits — skipping all AI generation.');
+        logger.info('Run `mvdoc init` to update your API key.');
+        throw err;
+      }
+
       const isRateLimit = err?.status === 429 || err?.message?.includes('429');
       const isRetryable = isRateLimit || err?.status === 503 || err?.status === 502;
 
