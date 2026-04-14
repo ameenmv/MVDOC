@@ -45,6 +45,7 @@ Use descriptive labels on the arrows showing data flow direction.`;
     const mermaidSyntax = await generateContent(prompt, {
       systemInstruction: MERMAID_SYSTEM_PROMPT,
       temperature: 0.2,
+      maxTokens: 1024,
     });
 
     const validated = validateMermaid(mermaidSyntax);
@@ -75,8 +76,8 @@ export async function generateModuleFlowDiagram(
     .join('\n');
 
   const codeSnippets = sourceFiles
-    .slice(0, 5) // Limit to 5 files for context
-    .map((f) => `### ${f.relativePath}\n\`\`\`${f.language}\n${f.content.substring(0, 1000)}\n\`\`\``)
+    .slice(0, 3) // Limit to 3 files
+    .map((f) => `### ${f.relativePath}\n\`\`\`${f.language}\n${f.content.substring(0, 400)}\n\`\`\``)
     .join('\n\n');
 
   const prompt = `Generate a Mermaid flowchart LR (left-to-right) diagram showing the data flow for the "${moduleName}" module.
@@ -96,6 +97,7 @@ Show:
   const mermaidSyntax = await generateContent(prompt, {
     systemInstruction: MERMAID_SYSTEM_PROMPT,
     temperature: 0.2,
+    maxTokens: 1024,
   });
 
   return {
@@ -131,6 +133,7 @@ Show the main happy path flow.`;
   const mermaidSyntax = await generateContent(prompt, {
     systemInstruction: MERMAID_SYSTEM_PROMPT,
     temperature: 0.2,
+    maxTokens: 1024,
   });
 
   return {
@@ -193,10 +196,10 @@ export async function generateERDiagram(
       f.relativePath.includes('migration')
   );
 
-  const codeContext = (modelFiles.length > 0 ? modelFiles : sourceFiles.slice(0, 10))
+  const codeContext = (modelFiles.length > 0 ? modelFiles : sourceFiles.slice(0, 5))
     .map(
       (f) =>
-        `### ${f.relativePath}\n\`\`\`${f.language}\n${f.content.substring(0, 1500)}\n\`\`\``
+        `### ${f.relativePath}\n\`\`\`${f.language}\n${f.content.substring(0, 500)}\n\`\`\``
     )
     .join('\n\n');
 
@@ -211,6 +214,7 @@ Include only the most important attributes (3-5 per entity).`;
   const mermaidSyntax = await generateContent(prompt, {
     systemInstruction: MERMAID_SYSTEM_PROMPT,
     temperature: 0.2,
+    maxTokens: 1024,
   });
 
   return {

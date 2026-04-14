@@ -458,12 +458,25 @@ description: Codebase modules and components
 |--------|-------|-------------|
 `;
 
-  for (const [moduleName, files] of moduleGroups) {
-    indexContent += `| [${moduleName}](/modules/${slugify(moduleName)}) | ${files.length} | Auto-analyzed module |\n`;
+  // Sort by file count descending, only generate AI docs for top 10 modules
+  const sortedModules = [...moduleGroups.entries()].sort((a, b) => b[1].length - a[1].length);
+  const topModules = sortedModules.slice(0, 10);
+  const remainingModules = sortedModules.slice(10);
 
-    // Generate individual module page
+  for (const [moduleName, files] of topModules) {
+    indexContent += `| [${moduleName}](/modules/${slugify(moduleName)}) | ${files.length} | Auto-analyzed module |\n`;
     const modulePage = await generateModulePage(moduleName, files, diagrams, modulesDir);
     pages.push(modulePage);
+  }
+
+  // For remaining modules, generate static pages (no AI call)
+  for (const [moduleName, files] of remainingModules) {
+    indexContent += `| ${moduleName} | ${files.length} | — |\n`;
+    const filesList = files.map((f) => `- \`${f.relativePath}\` (${f.language})`).join('\n');
+    const content = `---\ntitle: "${moduleName}"\n---\n\n# ${moduleName}\n\n## File Structure\n\n${filesList}\n`;
+    const filePath = path.join(modulesDir, `${slugify(moduleName)}.md`);
+    writeFile(filePath, content);
+    pages.push({ filePath, title: moduleName, content, category: 'module' });
   }
 
   const indexPath = path.join(modulesDir, 'index.md');
@@ -489,10 +502,10 @@ async function generateModulePage(
 ): Promise<GeneratedPage> {
   const filesList = files.map((f) => `- \`${f.relativePath}\` (${f.language})`).join('\n');
 
-  // Let AI analyze the module
+  // Send only top 4 representative files with 300 chars each (~300 tokens input per module)
   const codeContext = files
-    .slice(0, 8)
-    .map((f) => `### ${f.relativePath}\n\`\`\`${f.language}\n${f.content.substring(0, 800)}\n\`\`\``)
+    .slice(0, 4)
+    .map((f) => `### ${f.relativePath}\n\`\`\`${f.language}\n${f.content.substring(0, 300)}\n\`\`\``)
     .join('\n\n');
 
   let moduleDescription = '';
@@ -515,7 +528,7 @@ Write these sections:
       {
         systemInstruction: DOC_SYSTEM_PROMPT,
         temperature: 0.3,
-        maxTokens: 3072,
+        maxTokens: 1500,  // reduced: module summaries don't need long outputs
       }
     );
   } catch {
