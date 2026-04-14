@@ -256,102 +256,28 @@ async function interactiveSetup(cwd: string): Promise<{ config: MvdocConfig; sec
 
   // ─── AI Config ───
   logger.subheader('AI Configuration');
+  logger.info('Paste your API key — we\'ll detect the provider automatically.');
+  logger.info('Supported: Gemini (AIza...), Groq (gsk_...), OpenAI (sk-...), xAI (xai-)');
 
-  const providerAnswer = await prompts({
-    type: 'select',
-    name: 'provider',
-    message: 'Select AI Provider:',
-    choices: [
-      { title: 'Google Gemini (Native)', value: 'gemini' },
-      { title: 'OpenAI / Custom Endpoint / Groq', value: 'openai' },
-    ],
+  const keyAnswer = await prompts({
+    type: 'password',
+    name: 'apiKey',
+    message: 'API Key:',
+    validate: (v: string) => v.length > 0 || 'API key is required',
   });
 
-  config.ai.provider = providerAnswer.provider;
+  const detected = detectProviderFromKey(keyAnswer.apiKey);
+  config.ai.provider = detected.provider;
+  config.ai.model = detected.model;
+  if (detected.baseUrl) config.ai.baseUrl = detected.baseUrl;
 
-  if (config.ai.provider === 'gemini') {
-    const aiAnswers = await prompts([
-      {
-        type: 'password',
-        name: 'geminiKey',
-        message: 'Gemini API Key:',
-        validate: (v: string) => v.length > 0 || 'API key is required',
-      },
-      {
-        type: 'select',
-        name: 'model',
-        message: 'AI Model:',
-        choices: [
-          { title: 'Gemini 2.0 Flash (Fast, recommended)', value: 'gemini-2.0-flash' },
-          { title: 'Gemini 2.0 Flash Lite (Fastest)', value: 'gemini-2.0-flash-lite' },
-          { title: 'Gemini 1.5 Pro (Best quality)', value: 'gemini-1.5-pro' },
-        ],
-        initial: 0,
-      },
-    ]);
-    config.ai.model = aiAnswers.model;
-    secrets.geminiKey = aiAnswers.geminiKey;
+  if (detected.provider === 'gemini') {
+    secrets.geminiKey = keyAnswer.apiKey;
   } else {
-    const presetAnswer = await prompts({
-      type: 'select',
-      name: 'preset',
-      message: 'Select AI Model & Provider:',
-      choices: [
-        { title: 'xAI - Grok 2 (Latest)', value: 'xai-grok-2' },
-        { title: 'Groq - LLaMA 3 70B (Fast, Free)', value: 'groq-llama3-70b' },
-        { title: 'Groq - LLaMA 3 8B (Fastest, Free)', value: 'groq-llama3-8b' },
-        { title: 'OpenAI - GPT-4o', value: 'openai-gpt-4o' },
-        { title: 'OpenAI - GPT-4o-mini', value: 'openai-gpt-4o-mini' },
-        { title: 'Custom Endpoint', value: 'custom' },
-      ],
-    });
-
-    let baseUrl = '';
-    let model = '';
-
-    if (presetAnswer.preset === 'custom') {
-      const customAnswers = await prompts([
-        {
-          type: 'text',
-          name: 'baseUrl',
-          message: 'API Base URL (e.g. https://api.openai.com/v1):',
-          initial: 'https://api.openai.com/v1',
-        },
-        {
-          type: 'text',
-          name: 'model',
-          message: 'Model Name (e.g. gpt-4o):',
-          initial: 'gpt-4o',
-        },
-      ]);
-      baseUrl = customAnswers.baseUrl;
-      model = customAnswers.model;
-    } else {
-      const presets: Record<string, { url: string; mod: string }> = {
-        'xai-grok-2': { url: 'https://api.x.ai/v1', mod: 'grok-2-latest' },
-        'groq-llama3-70b': { url: 'https://api.groq.com/openai/v1', mod: 'llama3-70b-8192' },
-        'groq-llama3-8b': { url: 'https://api.groq.com/openai/v1', mod: 'llama3-8b-8192' },
-        'openai-gpt-4o': { url: 'https://api.openai.com/v1', mod: 'gpt-4o' },
-        'openai-gpt-4o-mini': { url: 'https://api.openai.com/v1', mod: 'gpt-4o-mini' },
-      };
-      
-      baseUrl = presets[presetAnswer.preset].url;
-      model = presets[presetAnswer.preset].mod;
-      logger.info(`Using Base URL: ${baseUrl}`);
-      logger.info(`Using Model: ${model}`);
-    }
-
-    const keyAnswer = await prompts({
-      type: 'password',
-      name: 'openaiKey',
-      message: 'API Key:',
-      validate: (v: string) => v.length > 0 || 'API key is required',
-    });
-
-    config.ai.baseUrl = baseUrl;
-    config.ai.model = model;
-    secrets.openaiKey = keyAnswer.openaiKey;
+    secrets.openaiKey = keyAnswer.apiKey;
   }
+
+  logger.info(`✓ Detected: ${detected.label} — using model ${detected.model}`);
 
   // Wait, let's also fix the default local include pattern to not strictly be src/**/*
   if (config.sources.local) {
@@ -359,6 +285,56 @@ async function interactiveSetup(cwd: string): Promise<{ config: MvdocConfig; sec
   }
 
   return { config, secrets };
+}
+
+interface DetectedProvider {
+  provider: 'gemini' | 'openai';
+  model: string;
+  baseUrl?: string;
+  label: string;
+}
+
+/**
+ * Detect the AI provider and pick the best default model from an API key prefix.
+ * - Gemini:  AIza...
+ * - Groq:    gsk_...
+ * - OpenAI:  sk-...
+ * - xAI:     xai-...
+ */
+function detectProviderFromKey(key: string): DetectedProvider {
+  const k = key.trim();
+
+  if (k.startsWith('AIza')) {
+    return { provider: 'gemini', model: 'gemini-2.0-flash', label: 'Google Gemini 2.0 Flash' };
+  }
+  if (k.startsWith('gsk_')) {
+    return {
+      provider: 'openai',
+      model: 'llama3-70b-8192',
+      baseUrl: 'https://api.groq.com/openai/v1',
+      label: 'Groq LLaMA 3 70B',
+    };
+  }
+  if (k.startsWith('xai-')) {
+    return {
+      provider: 'openai',
+      model: 'grok-2-latest',
+      baseUrl: 'https://api.x.ai/v1',
+      label: 'xAI Grok 2',
+    };
+  }
+  if (k.startsWith('sk-')) {
+    return {
+      provider: 'openai',
+      model: 'gpt-4o-mini',
+      baseUrl: 'https://api.openai.com/v1',
+      label: 'OpenAI GPT-4o-mini',
+    };
+  }
+
+  // Unknown prefix — fall back to Gemini-compatible guess
+  logger.warn('⚠ Could not detect provider from key prefix. Defaulting to Gemini.');
+  return { provider: 'gemini', model: 'gemini-2.0-flash', label: 'Google Gemini 2.0 Flash (fallback)' };
 }
 
 /**
