@@ -92,22 +92,28 @@ async function runGenerate(options: {
     if (!options.skipDiagrams) {
       logger.subheader('Step 3: Diagram Generation');
 
-      const sourceFiles = data.local?.sourceFiles || [];
-      diagrams = await generateAllDiagrams(data, specs, sourceFiles);
+      try {
+        const sourceFiles = data.local?.sourceFiles || [];
+        diagrams = await generateAllDiagrams(data, specs, sourceFiles);
 
-      // Generate module-level flow diagrams
-      if (sourceFiles.length > 0) {
-        const moduleGroups = groupByModule(sourceFiles);
-        for (const [moduleName, files] of moduleGroups) {
-          if (files.length >= 2) {
-            try {
-              const moduleDiagram = await generateModuleFlowDiagram(moduleName, files);
-              diagrams.push(moduleDiagram);
-            } catch {
-              logger.debug(`Skipped flow diagram for module: ${moduleName}`);
+        // Generate module-level flow diagrams
+        if (sourceFiles.length > 0) {
+          const moduleGroups = groupByModule(sourceFiles);
+          for (const [moduleName, files] of moduleGroups) {
+            if (files.length >= 2) {
+              try {
+                const moduleDiagram = await generateModuleFlowDiagram(moduleName, files);
+                diagrams.push(moduleDiagram);
+              } catch {
+                logger.debug(`Skipped flow diagram for module: ${moduleName}`);
+              }
             }
           }
         }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.warn(`Diagram generation failed: ${msg}`);
+        logger.info('Continuing to documentation generation without diagrams...');
       }
     }
   }

@@ -57,7 +57,8 @@ Use descriptive labels on the arrows showing data flow direction.`;
       description: 'High-level system architecture showing main components and their interactions.',
     };
   } catch (err) {
-    spinner.fail('Failed to generate architecture diagram');
+    const msg = err instanceof Error ? err.message : String(err);
+    spinner.fail(`Failed to generate architecture diagram: ${msg}`);
     throw err;
   }
 }
@@ -269,7 +270,8 @@ export async function generateAllDiagrams(
     spinner.succeed(`Generated ${diagrams.length} diagrams`);
     return diagrams;
   } catch (err) {
-    spinner.fail('Diagram generation failed');
+    const msg = err instanceof Error ? err.message : String(err);
+    spinner.fail(`Diagram generation failed: ${msg}`);
     throw err;
   }
 }
